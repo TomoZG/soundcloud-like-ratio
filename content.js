@@ -5,6 +5,7 @@
   const LIST_ITEM_SELECTOR = 'li.soundList__item';
   const BADGE_CLASS = 'sc-like-ratio-extension';
   const SORT_CONTROL_CLASS = 'sc-like-ratio-sort-control';
+  const EXTENSION_ELEMENT_SELECTOR = `.${BADGE_CLASS}, .${SORT_CONTROL_CLASS}`;
   const LOW_SAMPLE_PLAY_COUNT = 1_000;
   const POPULAR_PLAY_COUNT = 1_000_000;
   const VERY_POPULAR_PLAY_COUNT = 10_000_000;
@@ -30,9 +31,7 @@
       .trim()
       .toUpperCase();
 
-    const match = normalized.match(
-      /(\d{1,3}(?:[\s,]\d{3})+|\d+(?:[.,]\d+)?)\s*([KMB])?/
-    );
+    const match = normalized.match(/(\d+(?:[\s.,]\d+)*)\s*([KMB])?/);
 
     if (!match) {
       return null;
@@ -42,10 +41,25 @@
     let numericPart = match[1].replace(/\s/g, '');
 
     if (suffix) {
-      // Handles both 10.1K and locale-style 10,1K.
-      numericPart = numericPart.replace(',', '.');
+      // The final punctuation mark is the decimal separator. Any earlier marks
+      // are grouping separators, which supports both 1,234.5K and 1.234,5K.
+      const separatorIndex = Math.max(
+        numericPart.lastIndexOf('.'),
+        numericPart.lastIndexOf(',')
+      );
+
+      if (separatorIndex >= 0) {
+        const integerPart = numericPart
+          .slice(0, separatorIndex)
+          .replace(/[.,]/g, '');
+        const decimalPart = numericPart
+          .slice(separatorIndex + 1)
+          .replace(/[.,]/g, '');
+        numericPart = `${integerPart}.${decimalPart}`;
+      }
     } else {
-      numericPart = numericPart.replace(/,/g, '');
+      // Exact play and like counts are integers, regardless of locale grouping.
+      numericPart = numericPart.replace(/[.,]/g, '');
     }
 
     const value = Number.parseFloat(numericPart);
@@ -159,10 +173,43 @@
     return 'low';
   }
 
+  // Allow the calculation helpers to be tested with Node without starting the
+  // browser-only DOM observer. This branch is unreachable in a content script.
+  if (
+    typeof module !== 'undefined'
+    && module.exports
+    && typeof document === 'undefined'
+  ) {
+    module.exports = {
+      formatPercentage,
+      getPopularityLevel,
+      getTier,
+      parseMetric
+    };
+    return;
+  }
+
   function clearSortableValue(track) {
     const item = getListItem(track);
     if (item) {
       delete item.dataset.scLikeRatioValue;
+    }
+  }
+
+  function clearTrackState(track) {
+    track.querySelectorAll(`.${BADGE_CLASS}`).forEach((badge) => badge.remove());
+    clearSortableValue(track);
+  }
+
+  function setTextContent(element, value) {
+    if (element.textContent !== value) {
+      element.textContent = value;
+    }
+  }
+
+  function setAttribute(element, name, value) {
+    if (element.getAttribute(name) !== value) {
+      element.setAttribute(name, value);
     }
   }
 
@@ -174,22 +221,28 @@
     const plays = readPlays(track);
 
     if (!likes || !plays || !likes.button) {
-      clearSortableValue(track);
+      clearTrackState(track);
       return;
     }
 
     if (likes.value <= 0 || plays.value <= 0 || likes.value > plays.value) {
-      clearSortableValue(track);
+      clearTrackState(track);
       return;
     }
 
     const toolbar = likes.button.closest('.sc-button-group') ?? likes.button.parentElement;
     if (!toolbar) {
-      clearSortableValue(track);
+      clearTrackState(track);
       return;
     }
 
     let badge = toolbar.querySelector(`:scope > .${BADGE_CLASS}`);
+    track.querySelectorAll(`.${BADGE_CLASS}`).forEach((existingBadge) => {
+      if (existingBadge !== badge) {
+        existingBadge.remove();
+      }
+    });
+
     if (!badge) {
       badge = document.createElement('span');
       badge.className = BADGE_CLASS;
@@ -202,11 +255,11 @@
     const lowSample = plays.value < LOW_SAMPLE_PLAY_COUNT;
     const popularityLevel = getPopularityLevel(plays.value);
 
-    badge.textContent = ratio.label;
-    badge.dataset.tier = getTier(ratio.percentage);
-    badge.dataset.lowSample = String(lowSample);
-    badge.dataset.popularity = popularityLevel;
-    badge.title = [
+    setTextContent(badge, ratio.label);
+    setAttribute(badge, 'data-tier', getTier(ratio.percentage));
+    setAttribute(badge, 'data-low-sample', String(lowSample));
+    setAttribute(badge, 'data-popularity', popularityLevel);
+    setAttribute(badge, 'title', [
       `${likes.value.toLocaleString()} likes`,
       `${plays.value.toLocaleString()} plays`,
       `${ratio.percentage.toFixed(3)}% like rate`,
@@ -217,10 +270,14 @@
       popularityLevel === 'very-popular'
         ? 'Very popular track — like rate is less directly comparable'
         : null
-    ].filter(Boolean).join(' · ');
+    ].filter(Boolean).join(' · '));
 
     if (listItem) {
-      listItem.dataset.scLikeRatioValue = String(ratio.percentage);
+      setAttribute(
+        listItem,
+        'data-sc-like-ratio-value',
+        String(ratio.percentage)
+      );
     }
   }
 
@@ -297,12 +354,16 @@
       `${LIST_ITEM_SELECTOR}[data-sc-like-ratio-value]`
     ).length;
 
-    sortButton.hidden = sortableCount < 2;
-    sortButton.textContent = sortActive ? 'Restore order' : 'Sort by % ↓';
-    sortButton.setAttribute('aria-pressed', String(sortActive));
-    sortButton.title = sortActive
+    const hidden = sortableCount < 2;
+    if (sortButton.hidden !== hidden) {
+      sortButton.hidden = hidden;
+    }
+
+    setTextContent(sortButton, sortActive ? 'Restore order' : 'Sort by % ↓');
+    setAttribute(sortButton, 'aria-pressed', String(sortActive));
+    setAttribute(sortButton, 'title', sortActive
       ? 'Restore SoundCloud’s original order'
-      : 'Sort the currently loaded songs by like percentage, highest first';
+      : 'Sort the currently loaded songs by like percentage, highest first');
   }
 
   function ensureSortControl() {
@@ -358,10 +419,42 @@
     scanTimer = window.setTimeout(() => scan(document), 100);
   }
 
+  function isExtensionNode(node) {
+    const element = node instanceof Element ? node : node.parentElement;
+    return element instanceof Element
+      && (
+        element.matches(EXTENSION_ELEMENT_SELECTOR)
+        || element.closest(EXTENSION_ELEMENT_SELECTOR)
+      );
+  }
+
+  function isExtensionOnlyMutation(mutation) {
+    if (isExtensionNode(mutation.target)) {
+      return true;
+    }
+
+    if (mutation.type !== 'childList') {
+      return false;
+    }
+
+    const changedNodes = [
+      ...mutation.addedNodes,
+      ...mutation.removedNodes
+    ];
+
+    return changedNodes.length > 0 && changedNodes.every(isExtensionNode);
+  }
+
+  function handleMutations(mutations) {
+    if (mutations.some((mutation) => !isExtensionOnlyMutation(mutation))) {
+      scheduleScan();
+    }
+  }
+
   scan(document);
 
   // Search results are inserted and updated dynamically by SoundCloud's SPA.
-  new MutationObserver(scheduleScan).observe(document.documentElement, {
+  new MutationObserver(handleMutations).observe(document.documentElement, {
     childList: true,
     subtree: true,
     characterData: true
