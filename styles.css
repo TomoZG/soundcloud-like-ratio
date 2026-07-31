@@ -1,0 +1,77 @@
+.sc-like-ratio-extension {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 32px;
+  margin-left: 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.sc-like-ratio-extension[data-tier="high"] {
+  box-shadow: inset 3px 0 0 #2e9b52;
+}
+
+.sc-like-ratio-extension[data-tier="good"] {
+  box-shadow: inset 3px 0 0 #7a9b2e;
+}
+
+.sc-like-ratio-extension[data-tier="average"] {
+  box-shadow: inset 3px 0 0 #a77c24;
+}
+
+.sc-like-ratio-extension[data-tier="low"] {
+  box-shadow: inset 3px 0 0 #9b4b3f;
+}
+
+/* At very high play counts, the audience is broader and the raw like rate
+   tends to be less comparable with niche tracks. Keep it visible, but muted. */
+.sc-like-ratio-extension[data-popularity="popular"] {
+  opacity: 0.82;
+}
+
+.sc-like-ratio-extension[data-popularity="very-popular"] {
+  opacity: 0.68;
+}
+
+/* Low sample size remains the strongest confidence warning. */
+.sc-like-ratio-extension[data-low-sample="true"] {
+  opacity: 0.55;
+}
+
+.sc-like-ratio-sort-control {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 10000;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: #222;
+  color: #fff;
+  font: 600 13px/1 Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sc-like-ratio-sort-control:hover {
+  background: #333;
+}
+
+.sc-like-ratio-sort-control:focus-visible {
+  outline: 2px solid #f50;
+  outline-offset: 2px;
+}
+
+.sc-like-ratio-sort-control[aria-pressed="true"] {
+  border-color: #f50;
+}
