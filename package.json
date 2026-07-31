@@ -1,0 +1,20 @@
+{
+  "name": "soundcloud-like-ratio",
+  "version": "0.5.1",
+  "private": true,
+  "description": "Development tooling for the SoundCloud Like Ratio browser extension.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "lint": "node --check content.js && node scripts/lint-extension.js",
+    "check": "npm run lint && npm test",
+    "start:chrome": "web-ext run --target chromium --start-url https://soundcloud.com --ignore-files AGENTS.md README.md package.json package-lock.json \"scripts/**\" \"tests/**\"",
+    "start:firefox": "web-ext run --start-url https://soundcloud.com --ignore-files AGENTS.md README.md package.json package-lock.json \"scripts/**\" \"tests/**\""
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1",
+    "web-ext": "10.5.0"
+  }
+}
