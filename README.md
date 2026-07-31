@@ -64,9 +64,21 @@ The percentage is intentionally muted when the raw like rate is less comparable:
 
 The displayed percentage is always the unmodified likes-per-plays value.
 
-## Sorting
+## Filtering and sorting
 
-A `Sort by % ↓` button appears in the bottom-right corner when at least two tracks
-have valid like percentages. It sorts all currently loaded songs by percentage,
-highest first. While sorting is active, newly loaded songs are inserted into the
-same order. Click `Restore order` to return to SoundCloud's original order.
+A `Filter & sort` button appears in the bottom-right corner when the page contains
+a supported track. It opens a small panel with these controls:
+
+- **Minimum plays** shows tracks with at least the entered number of plays. Leave
+  it empty to disable filtering. Press Enter or leave the field to apply it.
+- **Minimum likes** shows tracks with at least the entered number of likes and
+  uses the same apply behavior.
+- **Order** switches between SoundCloud's original order and like percentage,
+  highest first.
+- **Reset** clears both thresholds and restores the original order.
+
+Tracks must meet both thresholds when both filters are active. Tracks with an
+unreadable play or like count remain visible; only known counts below an active
+minimum are hidden. Filtering and sorting also apply to tracks loaded later by
+SoundCloud. Settings survive in-page navigation, but reset when the page or tab
+is reloaded.
