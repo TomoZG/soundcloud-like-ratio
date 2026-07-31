@@ -2,22 +2,25 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a dependency-free Chrome Manifest V3 extension. All runtime files live at the repository root:
+This repository contains a Chrome and Firefox Manifest V3 extension. Runtime files live at the repository root:
 
 - `manifest.json` registers the content script and stylesheet for `soundcloud.com`.
 - `content.js` reads SoundCloud metrics, renders ratio badges, observes SPA updates, and manages sorting.
 - `styles.css` styles badges, confidence states, and the fixed sort control.
 - `README.md` documents installation, selectors, and user-facing behavior.
+- `tests/` contains Node test-runner and jsdom regression tests.
 
-Keep new runtime assets beside these files unless the project grows enough to justify `src/` and `tests/` directories. Update the manifest whenever adding a script, stylesheet, permission, or asset.
+Keep extension runtime assets at the root, tests under `tests/`, and development utilities under `scripts/`. Update the manifest whenever adding a runtime script, stylesheet, permission, or asset.
 
 ## Build, Test, and Development Commands
 
-There is no compilation step or package manager. Load the repository directly through `chrome://extensions` using **Load unpacked**.
+There is no compilation step. Use Node.js 22 or newer for development tooling. Load the repository directly through `chrome://extensions` or Firefox's `about:debugging` page.
 
-- `node --check content.js` checks JavaScript syntax without running browser APIs.
-- `git diff --check` catches whitespace errors before committing.
-- Reload the extension from `chrome://extensions`, then refresh a SoundCloud page to exercise changes.
+- `npm install` installs the pinned development dependencies.
+- `npm test` runs calculation and DOM behavior tests.
+- `npm run lint` checks JavaScript syntax and validates the extension manifest.
+- `npm run check` runs the complete automated validation suite.
+- `npm run start:chrome` or `npm run start:firefox` starts a temporary browser session.
 
 ## Coding Style & Naming Conventions
 
@@ -25,7 +28,7 @@ Follow the existing plain JavaScript and CSS style: two-space indentation, semic
 
 ## Testing Guidelines
 
-No automated test framework or coverage threshold is configured. Run the syntax and whitespace checks above, then test manually on SoundCloud search and stream pages. Verify exact and abbreviated counts (`10.1K`), dynamically loaded tracks, invalid or missing metrics, badge accessibility text, sort order, and **Restore order**. Document the pages and scenarios tested in the pull request.
+Tests use Node's test runner with jsdom; no coverage threshold is configured. Name tests `tests/*.test.js`. Run `npm run check`, then test manually on SoundCloud search and stream pages. Verify exact and abbreviated counts (`10.1K`), dynamically loaded tracks, invalid or missing metrics, badge accessibility text, sort order, and **Restore order**. Document the browsers and scenarios tested in the pull request.
 
 ## Commit & Pull Request Guidelines
 
