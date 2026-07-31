@@ -4,8 +4,11 @@
   const TRACK_SELECTOR = 'li.soundList__item, .sound.streamContext';
   const LIST_ITEM_SELECTOR = 'li.soundList__item';
   const BADGE_CLASS = 'sc-like-ratio-extension';
-  const SORT_CONTROL_CLASS = 'sc-like-ratio-sort-control';
-  const EXTENSION_ELEMENT_SELECTOR = `.${BADGE_CLASS}, .${SORT_CONTROL_CLASS}`;
+  const CONTROLS_CLASS = 'sc-like-ratio-controls';
+  const FILTERED_CLASS = 'sc-like-ratio-filtered';
+  const EXTENSION_ELEMENT_SELECTOR = `.${BADGE_CLASS}, .${CONTROLS_CLASS}`;
+  const PANEL_ID = 'sc-like-ratio-panel';
+  const PANEL_TITLE_ID = 'sc-like-ratio-panel-title';
   const LOW_SAMPLE_PLAY_COUNT = 1_000;
   const POPULAR_PLAY_COUNT = 1_000_000;
   const VERY_POPULAR_PLAY_COUNT = 10_000_000;
@@ -18,8 +21,17 @@
 
   const originalOrder = new WeakMap();
   let nextOriginalOrder = 0;
-  let sortActive = false;
-  let sortButton = null;
+  let sortMode = 'original';
+  let minimumPlays = null;
+  let minimumLikes = null;
+  let controls = null;
+  let controlButton = null;
+  let panel = null;
+  let minimumPlaysInput = null;
+  let playsThresholdError = null;
+  let minimumLikesInput = null;
+  let likesThresholdError = null;
+  let sortSelect = null;
 
   function parseMetric(text) {
     if (!text) {
@@ -189,16 +201,13 @@
     return;
   }
 
-  function clearSortableValue(track) {
+  function clearRatioState(track) {
+    track.querySelectorAll(`.${BADGE_CLASS}`).forEach((badge) => badge.remove());
+
     const item = getListItem(track);
     if (item) {
       delete item.dataset.scLikeRatioValue;
     }
-  }
-
-  function clearTrackState(track) {
-    track.querySelectorAll(`.${BADGE_CLASS}`).forEach((badge) => badge.remove());
-    clearSortableValue(track);
   }
 
   function setTextContent(element, value) {
@@ -220,19 +229,33 @@
     const likes = readLikes(track);
     const plays = readPlays(track);
 
-    if (!likes || !plays || !likes.button) {
-      clearTrackState(track);
+    if (likes && likes.value >= 0) {
+      setAttribute(track, 'data-sc-like-ratio-likes', String(likes.value));
+    } else {
+      delete track.dataset.scLikeRatioLikes;
+    }
+
+    if (!plays || plays.value <= 0) {
+      clearRatioState(track);
+      delete track.dataset.scLikeRatioPlays;
       return;
     }
 
-    if (likes.value <= 0 || plays.value <= 0 || likes.value > plays.value) {
-      clearTrackState(track);
+    setAttribute(track, 'data-sc-like-ratio-plays', String(plays.value));
+
+    if (
+      !likes
+      || !likes.button
+      || likes.value <= 0
+      || likes.value > plays.value
+    ) {
+      clearRatioState(track);
       return;
     }
 
     const toolbar = likes.button.closest('.sc-button-group') ?? likes.button.parentElement;
     if (!toolbar) {
-      clearTrackState(track);
+      clearRatioState(track);
       return;
     }
 
@@ -302,6 +325,16 @@
     return groups;
   }
 
+  function getTrackRoots() {
+    const tracks = new Set();
+
+    document.querySelectorAll(TRACK_SELECTOR).forEach((candidate) => {
+      tracks.add(getTrackRoot(candidate));
+    });
+
+    return [...tracks];
+  }
+
   function compareByPercentage(a, b) {
     const aValue = Number.parseFloat(a.dataset.scLikeRatioValue);
     const bValue = Number.parseFloat(b.dataset.scLikeRatioValue);
@@ -338,51 +371,325 @@
 
   function applyCurrentSort() {
     const groups = getSortableGroups();
-    const comparator = sortActive ? compareByPercentage : compareByOriginalOrder;
+    const comparator = sortMode === 'ratio'
+      ? compareByPercentage
+      : compareByOriginalOrder;
 
     groups.forEach((items, parent) => {
       reorderGroup(parent, items, comparator);
     });
   }
 
-  function updateSortButton() {
-    if (!sortButton) {
-      return;
-    }
+  function applyCurrentFilter() {
+    getTrackRoots().forEach((track) => {
+      const plays = Number.parseFloat(track.dataset.scLikeRatioPlays);
+      const likes = Number.parseFloat(track.dataset.scLikeRatioLikes);
+      const belowMinimumPlays = minimumPlays !== null
+        && Number.isFinite(plays)
+        && plays < minimumPlays;
+      const belowMinimumLikes = minimumLikes !== null
+        && Number.isFinite(likes)
+        && likes < minimumLikes;
 
-    const sortableCount = document.querySelectorAll(
-      `${LIST_ITEM_SELECTOR}[data-sc-like-ratio-value]`
-    ).length;
-
-    const hidden = sortableCount < 2;
-    if (sortButton.hidden !== hidden) {
-      sortButton.hidden = hidden;
-    }
-
-    setTextContent(sortButton, sortActive ? 'Restore order' : 'Sort by % ↓');
-    setAttribute(sortButton, 'aria-pressed', String(sortActive));
-    setAttribute(sortButton, 'title', sortActive
-      ? 'Restore SoundCloud’s original order'
-      : 'Sort the currently loaded songs by like percentage, highest first');
+      track.classList.toggle(
+        FILTERED_CLASS,
+        belowMinimumPlays || belowMinimumLikes
+      );
+    });
   }
 
-  function ensureSortControl() {
-    if (sortButton?.isConnected) {
-      updateSortButton();
+  function setThresholdError(input, error, message = '') {
+    if (!input || !error) {
       return;
     }
 
-    sortButton = document.createElement('button');
-    sortButton.type = 'button';
-    sortButton.className = SORT_CONTROL_CLASS;
-    sortButton.addEventListener('click', () => {
-      sortActive = !sortActive;
-      applyCurrentSort();
-      updateSortButton();
+    setAttribute(input, 'aria-invalid', String(Boolean(message)));
+    setTextContent(error, message);
+    error.hidden = !message;
+  }
+
+  function parseMinimumInput(input, error) {
+    const rawValue = input.value.trim();
+    let nextMinimum = null;
+
+    if (rawValue) {
+      if (!/^\d+$/.test(rawValue)) {
+        setThresholdError(
+          input,
+          error,
+          'Enter a whole number of 0 or more.'
+        );
+        return undefined;
+      }
+
+      nextMinimum = Number(rawValue);
+      if (!Number.isSafeInteger(nextMinimum)) {
+        setThresholdError(input, error, 'Enter a smaller whole number.');
+        return undefined;
+      }
+    }
+
+    input.value = nextMinimum === null ? '' : String(nextMinimum);
+    setThresholdError(input, error);
+    return nextMinimum;
+  }
+
+  function commitMinimumPlays() {
+    const nextMinimum = parseMinimumInput(
+      minimumPlaysInput,
+      playsThresholdError
+    );
+    if (nextMinimum === undefined) {
+      return false;
+    }
+
+    minimumPlays = nextMinimum;
+    applyCurrentFilter();
+    updateControls();
+    return true;
+  }
+
+  function commitMinimumLikes() {
+    const nextMinimum = parseMinimumInput(
+      minimumLikesInput,
+      likesThresholdError
+    );
+    if (nextMinimum === undefined) {
+      return false;
+    }
+
+    minimumLikes = nextMinimum;
+    applyCurrentFilter();
+    updateControls();
+    return true;
+  }
+
+  function setPanelOpen(open, returnFocus = false) {
+    if (!panel || !controlButton) {
+      return;
+    }
+
+    panel.hidden = !open;
+    setAttribute(controlButton, 'aria-expanded', String(open));
+
+    if (open) {
+      minimumPlaysInput.focus();
+    } else if (returnFocus) {
+      controlButton.focus();
+    }
+  }
+
+  function resetSettings() {
+    minimumPlays = null;
+    minimumLikes = null;
+    sortMode = 'original';
+    minimumPlaysInput.value = '';
+    minimumLikesInput.value = '';
+    sortSelect.value = sortMode;
+    setThresholdError(minimumPlaysInput, playsThresholdError);
+    setThresholdError(minimumLikesInput, likesThresholdError);
+    applyCurrentFilter();
+    applyCurrentSort();
+    updateControls();
+  }
+
+  function updateControls() {
+    if (!controls || !controlButton) {
+      return;
+    }
+
+    const hidden = getTrackRoots().length === 0;
+    controls.hidden = hidden;
+    if (hidden && panel && !panel.hidden) {
+      setPanelOpen(false);
+    }
+
+    const activeSettings = [];
+    if (minimumPlays !== null) {
+      activeSettings.push(`at least ${minimumPlays.toLocaleString()} plays`);
+    }
+    if (minimumLikes !== null) {
+      activeSettings.push(`at least ${minimumLikes.toLocaleString()} likes`);
+    }
+    if (sortMode === 'ratio') {
+      activeSettings.push('like ratio, highest first');
+    }
+
+    const active = activeSettings.length > 0;
+    controlButton.dataset.active = String(active);
+    setTextContent(controlButton, 'Filter & sort');
+    setAttribute(controlButton, 'aria-label', active
+      ? `Filter and sort, active: ${activeSettings.join('; ')}`
+      : 'Filter and sort');
+    setAttribute(controlButton, 'title', active
+      ? `Active: ${activeSettings.join(' · ')}`
+      : 'Filter and sort loaded songs');
+  }
+
+  function ensureControls() {
+    if (controls?.isConnected) {
+      updateControls();
+      return;
+    }
+
+    controls = document.createElement('div');
+    controls.className = CONTROLS_CLASS;
+
+    controlButton = document.createElement('button');
+    controlButton.type = 'button';
+    controlButton.className = 'sc-like-ratio-control-button';
+    controlButton.setAttribute('aria-controls', PANEL_ID);
+    controlButton.setAttribute('aria-expanded', 'false');
+    controlButton.addEventListener('click', () => {
+      setPanelOpen(panel.hidden);
     });
 
-    document.body.appendChild(sortButton);
-    updateSortButton();
+    panel = document.createElement('section');
+    panel.id = PANEL_ID;
+    panel.className = 'sc-like-ratio-panel';
+    panel.hidden = true;
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'false');
+    panel.setAttribute('aria-labelledby', PANEL_TITLE_ID);
+
+    const title = document.createElement('h2');
+    title.id = PANEL_TITLE_ID;
+    title.textContent = 'Filter & sort';
+
+    const thresholdField = document.createElement('div');
+    thresholdField.className = 'sc-like-ratio-field';
+
+    const thresholdLabel = document.createElement('label');
+    thresholdLabel.setAttribute('for', 'sc-like-ratio-minimum-plays');
+    thresholdLabel.textContent = 'Minimum plays';
+
+    minimumPlaysInput = document.createElement('input');
+    minimumPlaysInput.id = 'sc-like-ratio-minimum-plays';
+    minimumPlaysInput.type = 'number';
+    minimumPlaysInput.min = '0';
+    minimumPlaysInput.step = '1';
+    minimumPlaysInput.placeholder = 'No minimum';
+    minimumPlaysInput.inputMode = 'numeric';
+    minimumPlaysInput.value = minimumPlays === null ? '' : String(minimumPlays);
+    minimumPlaysInput.setAttribute(
+      'aria-describedby',
+      'sc-like-ratio-plays-threshold-error'
+    );
+    minimumPlaysInput.addEventListener('input', () => setThresholdError(
+      minimumPlaysInput,
+      playsThresholdError
+    ));
+    minimumPlaysInput.addEventListener('blur', commitMinimumPlays);
+    minimumPlaysInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commitMinimumPlays();
+      }
+    });
+
+    playsThresholdError = document.createElement('p');
+    playsThresholdError.id = 'sc-like-ratio-plays-threshold-error';
+    playsThresholdError.className = 'sc-like-ratio-error';
+    playsThresholdError.setAttribute('aria-live', 'polite');
+    playsThresholdError.hidden = true;
+
+    thresholdField.append(
+      thresholdLabel,
+      minimumPlaysInput,
+      playsThresholdError
+    );
+
+    const likesThresholdField = document.createElement('div');
+    likesThresholdField.className = 'sc-like-ratio-field';
+
+    const likesThresholdLabel = document.createElement('label');
+    likesThresholdLabel.setAttribute('for', 'sc-like-ratio-minimum-likes');
+    likesThresholdLabel.textContent = 'Minimum likes';
+
+    minimumLikesInput = document.createElement('input');
+    minimumLikesInput.id = 'sc-like-ratio-minimum-likes';
+    minimumLikesInput.type = 'number';
+    minimumLikesInput.min = '0';
+    minimumLikesInput.step = '1';
+    minimumLikesInput.placeholder = 'No minimum';
+    minimumLikesInput.inputMode = 'numeric';
+    minimumLikesInput.value = minimumLikes === null ? '' : String(minimumLikes);
+    minimumLikesInput.setAttribute(
+      'aria-describedby',
+      'sc-like-ratio-likes-threshold-error'
+    );
+    minimumLikesInput.addEventListener('input', () => setThresholdError(
+      minimumLikesInput,
+      likesThresholdError
+    ));
+    minimumLikesInput.addEventListener('blur', commitMinimumLikes);
+    minimumLikesInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commitMinimumLikes();
+      }
+    });
+
+    likesThresholdError = document.createElement('p');
+    likesThresholdError.id = 'sc-like-ratio-likes-threshold-error';
+    likesThresholdError.className = 'sc-like-ratio-error';
+    likesThresholdError.setAttribute('aria-live', 'polite');
+    likesThresholdError.hidden = true;
+
+    likesThresholdField.append(
+      likesThresholdLabel,
+      minimumLikesInput,
+      likesThresholdError
+    );
+
+    const sortField = document.createElement('div');
+    sortField.className = 'sc-like-ratio-field';
+
+    const sortLabel = document.createElement('label');
+    sortLabel.setAttribute('for', 'sc-like-ratio-sort-order');
+    sortLabel.textContent = 'Order';
+
+    sortSelect = document.createElement('select');
+    sortSelect.id = 'sc-like-ratio-sort-order';
+
+    const originalOption = document.createElement('option');
+    originalOption.value = 'original';
+    originalOption.textContent = 'Original order';
+
+    const ratioOption = document.createElement('option');
+    ratioOption.value = 'ratio';
+    ratioOption.textContent = 'Like ratio — highest first';
+
+    sortSelect.append(originalOption, ratioOption);
+    sortSelect.value = sortMode;
+    sortSelect.addEventListener('change', () => {
+      sortMode = sortSelect.value;
+      applyCurrentSort();
+      updateControls();
+    });
+
+    sortField.append(sortLabel, sortSelect);
+
+    const actions = document.createElement('div');
+    actions.className = 'sc-like-ratio-actions';
+
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'sc-like-ratio-reset';
+    resetButton.textContent = 'Reset';
+    resetButton.addEventListener('click', resetSettings);
+
+    const doneButton = document.createElement('button');
+    doneButton.type = 'button';
+    doneButton.className = 'sc-like-ratio-done';
+    doneButton.textContent = 'Done';
+    doneButton.addEventListener('click', () => setPanelOpen(false, true));
+
+    actions.append(resetButton, doneButton);
+    panel.append(title, thresholdField, likesThresholdField, sortField, actions);
+    controls.append(panel, controlButton);
+    document.body.appendChild(controls);
+    updateControls();
   }
 
   function scan(root = document) {
@@ -405,10 +712,11 @@
       addOrUpdateBadge(track);
     }
 
-    ensureSortControl();
+    ensureControls();
+    applyCurrentFilter();
 
     // Keep newly loaded tracks in the selected order while sorting is active.
-    if (sortActive) {
+    if (sortMode === 'ratio') {
       applyCurrentSort();
     }
   }
@@ -451,7 +759,27 @@
     }
   }
 
+  function handleDocumentClick(event) {
+    if (
+      panel
+      && !panel.hidden
+      && controls
+      && !controls.contains(event.target)
+    ) {
+      setPanelOpen(false);
+    }
+  }
+
+  function handleDocumentKeydown(event) {
+    if (event.key === 'Escape' && panel && !panel.hidden) {
+      event.preventDefault();
+      setPanelOpen(false, true);
+    }
+  }
+
   scan(document);
+  document.addEventListener('click', handleDocumentClick);
+  document.addEventListener('keydown', handleDocumentKeydown);
 
   // Search results are inserted and updated dynamically by SoundCloud's SPA.
   new MutationObserver(handleMutations).observe(document.documentElement, {

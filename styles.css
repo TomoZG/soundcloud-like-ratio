@@ -47,11 +47,20 @@
   opacity: 0.55;
 }
 
-.sc-like-ratio-sort-control {
+.sc-like-ratio-filtered {
+  display: none !important;
+}
+
+.sc-like-ratio-controls {
   position: fixed;
   right: 20px;
   bottom: 68px;
   z-index: 10000;
+  color: #fff;
+  font: 13px/1.35 Arial, sans-serif;
+}
+
+.sc-like-ratio-control-button {
   min-height: 34px;
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -63,15 +72,120 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.sc-like-ratio-sort-control:hover {
+.sc-like-ratio-control-button:hover {
   background: #333;
 }
 
-.sc-like-ratio-sort-control:focus-visible {
+.sc-like-ratio-control-button:focus-visible,
+.sc-like-ratio-panel input:focus-visible,
+.sc-like-ratio-panel select:focus-visible,
+.sc-like-ratio-panel button:focus-visible {
   outline: 2px solid #f50;
   outline-offset: 2px;
 }
 
-.sc-like-ratio-sort-control[aria-pressed="true"] {
+.sc-like-ratio-control-button[data-active="true"] {
   border-color: #f50;
+}
+
+.sc-like-ratio-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  box-sizing: border-box;
+  width: 280px;
+  max-height: calc(100vh - 128px);
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  overflow-y: auto;
+}
+
+.sc-like-ratio-panel[hidden],
+.sc-like-ratio-controls[hidden],
+.sc-like-ratio-error[hidden] {
+  display: none;
+}
+
+.sc-like-ratio-panel h2 {
+  margin: 0 0 14px;
+  color: inherit;
+  font: 600 16px/1.25 Arial, sans-serif;
+}
+
+.sc-like-ratio-field {
+  margin-bottom: 14px;
+}
+
+.sc-like-ratio-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #ddd;
+  font-weight: 600;
+}
+
+.sc-like-ratio-field input,
+.sc-like-ratio-field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: #111;
+  color: #fff;
+  font: 14px/1.2 Arial, sans-serif;
+}
+
+.sc-like-ratio-field input[aria-invalid="true"] {
+  border-color: #ff7a66;
+}
+
+.sc-like-ratio-error {
+  margin: 6px 0 0;
+  color: #ff9c8c;
+  font-size: 12px;
+}
+
+.sc-like-ratio-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sc-like-ratio-actions button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: transparent;
+  color: #fff;
+  font: 600 13px/1 Arial, sans-serif;
+  cursor: pointer;
+}
+
+.sc-like-ratio-actions button:hover {
+  background: #333;
+}
+
+.sc-like-ratio-actions .sc-like-ratio-done {
+  border-color: #f50;
+  background: #f50;
+}
+
+.sc-like-ratio-actions .sc-like-ratio-done:hover {
+  background: #e64d00;
+}
+
+@media (max-width: 420px) {
+  .sc-like-ratio-controls {
+    right: 12px;
+  }
+
+  .sc-like-ratio-panel {
+    max-width: calc(100vw - 24px);
+  }
 }

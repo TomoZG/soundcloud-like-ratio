@@ -55,6 +55,26 @@ function trackOrder(list) {
   return [...list.children].map((item) => item.dataset.trackId);
 }
 
+function setMinimumPlays(document, value) {
+  const input = document.querySelector('#sc-like-ratio-minimum-plays');
+  input.value = value;
+  input.dispatchEvent(new document.defaultView.Event('blur'));
+  return input;
+}
+
+function setMinimumLikes(document, value) {
+  const input = document.querySelector('#sc-like-ratio-minimum-likes');
+  input.value = value;
+  input.dispatchEvent(new document.defaultView.Event('blur'));
+  return input;
+}
+
+function setSortOrder(document, value) {
+  const select = document.querySelector('#sc-like-ratio-sort-order');
+  select.value = value;
+  select.dispatchEvent(new document.defaultView.Event('change'));
+}
+
 describe('metric calculations', () => {
   test('parses exact counts with common locale grouping', () => {
     const cases = [
@@ -147,6 +167,8 @@ describe('content script behavior', () => {
       assert.equal(badge.dataset.popularity, 'normal');
       assert.match(badge.title, /2,000 plays/);
       assert.equal(track.dataset.scLikeRatioValue, '5');
+      assert.equal(track.dataset.scLikeRatioPlays, '2000');
+      assert.equal(track.dataset.scLikeRatioLikes, '100');
     } finally {
       dom.window.close();
     }
@@ -220,6 +242,7 @@ describe('content script behavior', () => {
 
       assert.equal(track.querySelector('.sc-like-ratio-extension'), null);
       assert.equal(track.hasAttribute('data-sc-like-ratio-value'), false);
+      assert.equal(track.hasAttribute('data-sc-like-ratio-plays'), false);
     } finally {
       dom.window.close();
     }
@@ -246,11 +269,12 @@ describe('content script behavior', () => {
       const document = dom.window.document;
       const first = document.querySelector('#first-list');
       const second = document.querySelector('#second-list');
-      const button = document.querySelector('.sc-like-ratio-sort-control');
+      const button = document.querySelector('.sc-like-ratio-control-button');
 
-      button.click();
+      setSortOrder(document, 'ratio');
       assert.deepEqual(trackOrder(first), ['b', 'c', 'a', 'invalid']);
       assert.deepEqual(trackOrder(second), ['y', 'x']);
+      assert.equal(button.dataset.active, 'true');
 
       first.insertAdjacentHTML('beforeend', trackMarkup({
         id: 'new',
@@ -264,12 +288,308 @@ describe('content script behavior', () => {
         ['new', 'b', 'c', 'a', 'invalid']
       );
 
-      button.click();
+      setSortOrder(document, 'original');
       assert.deepEqual(
         trackOrder(first),
         ['a', 'b', 'c', 'invalid', 'new']
       );
       assert.deepEqual(trackOrder(second), ['x', 'y']);
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('opens an accessible panel and closes it with Done and Escape', () => {
+    const dom = startExtension(trackMarkup({
+      id: 'track-a',
+      likes: '-',
+      plays: '2,000'
+    }));
+
+    try {
+      const document = dom.window.document;
+      const button = document.querySelector('.sc-like-ratio-control-button');
+      const panel = document.querySelector('.sc-like-ratio-panel');
+      const input = document.querySelector('#sc-like-ratio-minimum-plays');
+
+      assert.equal(document.querySelector('.sc-like-ratio-controls').hidden, false);
+      assert.equal(panel.hidden, true);
+      assert.equal(button.getAttribute('aria-expanded'), 'false');
+
+      button.click();
+      assert.equal(panel.hidden, false);
+      assert.equal(button.getAttribute('aria-expanded'), 'true');
+      assert.equal(document.activeElement, input);
+
+      document.body.dispatchEvent(new dom.window.MouseEvent('click', {
+        bubbles: true
+      }));
+      assert.equal(panel.hidden, true);
+
+      button.click();
+
+      document.querySelector('.sc-like-ratio-done').click();
+      assert.equal(panel.hidden, true);
+      assert.equal(document.activeElement, button);
+
+      button.click();
+      document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true
+      }));
+      assert.equal(panel.hidden, true);
+      assert.equal(document.activeElement, button);
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('filters plays inclusively and keeps tracks with unknown plays', () => {
+    const list = `
+      <ul id="tracks">
+        ${trackMarkup({ id: 'below', likes: '10', plays: '999' })}
+        ${trackMarkup({ id: 'boundary', likes: '10', plays: '1,000' })}
+        ${trackMarkup({ id: 'invalid-ratio', likes: '-', plays: '2,000' })}
+        ${trackMarkup({
+          id: 'unknown',
+          likes: '10',
+          plays: 'not available',
+          title: null
+        })}
+      </ul>
+    `;
+    const dom = startExtension(list);
+
+    try {
+      const document = dom.window.document;
+      const input = setMinimumPlays(document, '1000');
+      const track = (id) => document.querySelector(`[data-track-id="${id}"]`);
+
+      assert.equal(track('below').classList.contains(
+        'sc-like-ratio-filtered'
+      ), true);
+      assert.equal(track('boundary').classList.contains(
+        'sc-like-ratio-filtered'
+      ), false);
+      assert.equal(track('invalid-ratio').classList.contains(
+        'sc-like-ratio-filtered'
+      ), false);
+      assert.equal(track('invalid-ratio').dataset.scLikeRatioPlays, '2000');
+      assert.equal(track('invalid-ratio').hasAttribute(
+        'data-sc-like-ratio-value'
+      ), false);
+      assert.equal(track('unknown').classList.contains(
+        'sc-like-ratio-filtered'
+      ), false);
+      assert.equal(input.getAttribute('aria-invalid'), 'false');
+      assert.match(
+        document.querySelector('.sc-like-ratio-control-button').getAttribute(
+          'aria-label'
+        ),
+        /at least 1,000 plays/
+      );
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('filters likes inclusively and keeps tracks with unknown likes', () => {
+    const list = `
+      <ul id="tracks">
+        ${trackMarkup({ id: 'below', likes: '9', plays: '2,000' })}
+        ${trackMarkup({ id: 'boundary', likes: '10', plays: '1,000' })}
+        ${trackMarkup({ id: 'low-plays', likes: '100', plays: '999' })}
+        ${trackMarkup({ id: 'approximate', likes: '10.1K', plays: '250K' })}
+        ${trackMarkup({ id: 'unknown-likes', likes: '-', plays: '2,000' })}
+        ${trackMarkup({
+          id: 'unknown-plays',
+          likes: '100',
+          plays: 'not available',
+          title: null
+        })}
+      </ul>
+    `;
+    const dom = startExtension(list);
+
+    try {
+      const document = dom.window.document;
+      const track = (id) => document.querySelector(`[data-track-id="${id}"]`);
+      setMinimumPlays(document, '1000');
+      setMinimumLikes(document, '10');
+
+      assert.equal(track('below').classList.contains(
+        'sc-like-ratio-filtered'
+      ), true);
+      assert.equal(track('boundary').classList.contains(
+        'sc-like-ratio-filtered'
+      ), false);
+      assert.equal(track('low-plays').classList.contains(
+        'sc-like-ratio-filtered'
+      ), true);
+      assert.equal(track('approximate').classList.contains(
+        'sc-like-ratio-filtered'
+      ), false);
+      assert.equal(track('approximate').dataset.scLikeRatioLikes, '10100');
+      assert.equal(track('unknown-likes').classList.contains(
+        'sc-like-ratio-filtered'
+      ), false);
+      assert.equal(track('unknown-likes').hasAttribute(
+        'data-sc-like-ratio-likes'
+      ), false);
+      assert.equal(track('unknown-plays').classList.contains(
+        'sc-like-ratio-filtered'
+      ), false);
+      assert.match(
+        document.querySelector('.sc-like-ratio-control-button').getAttribute(
+          'aria-label'
+        ),
+        /at least 10 likes/
+      );
+
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('retains the applied threshold after invalid input and Reset clears settings', () => {
+    const list = `
+      <ul id="tracks">
+        ${trackMarkup({ id: 'low', likes: '10', plays: '500' })}
+        ${trackMarkup({ id: 'high', likes: '20', plays: '2,000' })}
+      </ul>
+    `;
+    const dom = startExtension(list);
+
+    try {
+      const document = dom.window.document;
+      const low = document.querySelector('[data-track-id="low"]');
+      const input = setMinimumPlays(document, '1000');
+      const likesInput = setMinimumLikes(document, '10');
+
+      assert.equal(low.classList.contains('sc-like-ratio-filtered'), true);
+
+      input.value = '-1';
+      input.dispatchEvent(new dom.window.Event('blur'));
+      assert.equal(input.getAttribute('aria-invalid'), 'true');
+      assert.equal(low.classList.contains('sc-like-ratio-filtered'), true);
+
+      likesInput.value = '1.5';
+      likesInput.dispatchEvent(new dom.window.Event('blur'));
+      assert.equal(likesInput.getAttribute('aria-invalid'), 'true');
+
+      setSortOrder(document, 'ratio');
+      document.querySelector('.sc-like-ratio-reset').click();
+      assert.equal(input.value, '');
+      assert.equal(likesInput.value, '');
+      assert.equal(input.getAttribute('aria-invalid'), 'false');
+      assert.equal(likesInput.getAttribute('aria-invalid'), 'false');
+      assert.equal(low.classList.contains('sc-like-ratio-filtered'), false);
+      assert.equal(
+        document.querySelector('#sc-like-ratio-sort-order').value,
+        'original'
+      );
+      assert.equal(
+        document.querySelector('.sc-like-ratio-control-button').dataset.active,
+        'false'
+      );
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('applies active filtering and sorting to dynamically loaded tracks', async () => {
+    const list = `
+      <ul id="tracks">
+        ${trackMarkup({ id: 'a', likes: '10', plays: '2,000' })}
+        ${trackMarkup({ id: 'b', likes: '100', plays: '2,000' })}
+      </ul>
+    `;
+    const dom = startExtension(list);
+
+    try {
+      const document = dom.window.document;
+      const tracks = document.querySelector('#tracks');
+      setMinimumPlays(document, '1000');
+      setSortOrder(document, 'ratio');
+
+      tracks.insertAdjacentHTML('beforeend', trackMarkup({
+        id: 'new-low',
+        likes: '90',
+        plays: '900'
+      }));
+      tracks.insertAdjacentHTML('beforeend', trackMarkup({
+        id: 'new-high',
+        likes: '200',
+        plays: '2,000'
+      }));
+      await waitForScan(dom.window, 320);
+
+      assert.deepEqual(trackOrder(tracks), ['new-low', 'new-high', 'b', 'a']);
+      assert.equal(
+        document.querySelector('[data-track-id="new-low"]').classList.contains(
+          'sc-like-ratio-filtered'
+        ),
+        true
+      );
+      assert.equal(
+        document.querySelector('[data-track-id="new-high"]').classList.contains(
+          'sc-like-ratio-filtered'
+        ),
+        false
+      );
+
+      const newLow = document.querySelector('[data-track-id="new-low"]');
+      newLow.querySelector('.sc-ministats-item').title = '1,200 plays';
+      newLow.querySelector('.sc-ministats-plays').textContent = '1,200';
+      await waitForScan(dom.window);
+
+      assert.equal(newLow.classList.contains('sc-like-ratio-filtered'), false);
+      assert.deepEqual(trackOrder(tracks), ['new-high', 'new-low', 'b', 'a']);
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('reapplies minimum likes when tracks load or like metrics change', async () => {
+    const list = `
+      <ul id="tracks">
+        ${trackMarkup({ id: 'changing', likes: '5', plays: '2,000' })}
+        ${trackMarkup({ id: 'unknown', likes: '-', plays: '2,000' })}
+      </ul>
+    `;
+    const dom = startExtension(list);
+
+    try {
+      const document = dom.window.document;
+      const tracks = document.querySelector('#tracks');
+      const changing = document.querySelector('[data-track-id="changing"]');
+      const unknown = document.querySelector('[data-track-id="unknown"]');
+      setMinimumLikes(document, '10');
+
+      assert.equal(changing.classList.contains('sc-like-ratio-filtered'), true);
+      assert.equal(unknown.classList.contains('sc-like-ratio-filtered'), false);
+
+      tracks.insertAdjacentHTML('beforeend', trackMarkup({
+        id: 'new-low',
+        likes: '9',
+        plays: '2,000'
+      }));
+      changing.querySelector('.sc-button-label').textContent = '15';
+      await waitForScan(dom.window, 320);
+
+      assert.equal(changing.classList.contains('sc-like-ratio-filtered'), false);
+      assert.equal(
+        document.querySelector('[data-track-id="new-low"]').classList.contains(
+          'sc-like-ratio-filtered'
+        ),
+        true
+      );
+
+      changing.querySelector('.sc-button-label').remove();
+      await waitForScan(dom.window);
+
+      assert.equal(changing.hasAttribute('data-sc-like-ratio-likes'), false);
+      assert.equal(changing.classList.contains('sc-like-ratio-filtered'), false);
     } finally {
       dom.window.close();
     }
