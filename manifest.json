@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SoundCloud Like Ratio",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Shows SoundCloud like percentages and can filter or sort loaded tracks.",
   "homepage_url": "https://github.com/TomoZG/soundcloud-like-ratio",
   "icons": {
