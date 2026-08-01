@@ -234,6 +234,30 @@ describe('content script behavior', () => {
     }
   });
 
+  test('updates when only the exact play-count title changes', async () => {
+    const dom = startExtension(trackMarkup({
+      id: 'track-a',
+      likes: '100',
+      plays: '2K',
+      title: '2,000 plays'
+    }));
+
+    try {
+      const document = dom.window.document;
+      const track = document.querySelector('[data-track-id="track-a"]');
+      const badge = track.querySelector('.sc-like-ratio-extension');
+
+      track.querySelector('.sc-ministats-item').title = '4,000 plays';
+      await waitForScan(dom.window);
+
+      assert.equal(badge.textContent, '2.50%');
+      assert.equal(track.dataset.scLikeRatioPlays, '4000');
+      assert.equal(track.dataset.scLikeRatioValue, '2.5');
+    } finally {
+      dom.window.close();
+    }
+  });
+
   test('removes stale badge and sorting state when metrics disappear', async () => {
     const dom = startExtension(trackMarkup({
       id: 'track-a',

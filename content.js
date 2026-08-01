@@ -832,6 +832,8 @@
 
   // Search results are inserted and updated dynamically by SoundCloud's SPA.
   new MutationObserver(handleMutations).observe(document.documentElement, {
+    attributeFilter: ['title'],
+    attributes: true,
     childList: true,
     subtree: true,
     characterData: true
