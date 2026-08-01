@@ -2,7 +2,7 @@
   'use strict';
 
   const TRACK_SELECTOR = 'li.soundList__item, .sound.streamContext';
-  const LIST_ITEM_SELECTOR = 'li.soundList__item';
+  const LIST_ITEM_SELECTOR = 'li.soundList__item, li.searchList__item';
   const BADGE_CLASS = 'sc-like-ratio-extension';
   const BADGE_VALUE_CLASS = 'sc-like-ratio-value';
   const CONTROLS_CLASS = 'sc-like-ratio-controls';
@@ -113,7 +113,15 @@
       return;
     }
 
-    originalOrder.set(item, nextOriginalOrder++);
+    const siblings = item.parentElement?.children ?? [item];
+    [...siblings].forEach((sibling) => {
+      if (
+        sibling.matches?.(LIST_ITEM_SELECTOR)
+        && !originalOrder.has(sibling)
+      ) {
+        originalOrder.set(sibling, nextOriginalOrder++);
+      }
+    });
   }
 
   function readLikes(track) {

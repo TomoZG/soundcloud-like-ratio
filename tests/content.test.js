@@ -18,11 +18,23 @@ const contentScript = fs.readFileSync(
   'utf8'
 );
 
-function trackMarkup({ id, likes, plays, title = `${plays} plays` }) {
+function trackMarkup({
+  id,
+  likes,
+  plays,
+  title = `${plays} plays`,
+  itemClass = 'soundList__item',
+  nestedSound = false
+}) {
   const titleAttribute = title === null ? '' : ` title="${title}"`;
+  const soundStart = nestedSound
+    ? '<div class="sound searchItem__trackItem streamContext">'
+    : '';
+  const soundEnd = nestedSound ? '</div>' : '';
 
   return `
-    <li class="soundList__item" data-track-id="${id}">
+    <li class="${itemClass}" data-track-id="${id}">
+      ${soundStart}
       <div class="sc-button-group">
         <button class="sc-button-like">
           <span class="sc-button-label">${likes}</span>
@@ -33,6 +45,7 @@ function trackMarkup({ id, likes, plays, title = `${plays} plays` }) {
           <span class="sc-ministats-plays">${plays}</span>
         </li>
       </ul>
+      ${soundEnd}
     </li>
   `;
 }
@@ -335,6 +348,39 @@ describe('content script behavior', () => {
         ['a', 'b', 'c', 'invalid', 'new']
       );
       assert.deepEqual(trackOrder(second), ['x', 'y']);
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('sorts current search-result items and restores non-track rows', () => {
+    const searchTrack = (options) => trackMarkup({
+      ...options,
+      itemClass: 'searchList__item',
+      nestedSound: true
+    });
+    const list = `
+      <ul id="search-list">
+        ${searchTrack({ id: 'a', likes: '10', plays: '1,000' })}
+        <li class="searchList__item" data-track-id="non-track">Ad</li>
+        ${searchTrack({ id: 'b', likes: '50', plays: '1,000' })}
+        ${searchTrack({ id: 'c', likes: '30', plays: '1,000' })}
+      </ul>
+    `;
+    const dom = startExtension(list);
+
+    try {
+      const document = dom.window.document;
+      const searchList = document.querySelector('#search-list');
+
+      setSortOrder(document, 'ratio');
+      assert.deepEqual(trackOrder(searchList), ['b', 'c', 'a', 'non-track']);
+
+      setSortOrder(document, 'original');
+      assert.deepEqual(
+        trackOrder(searchList),
+        ['a', 'non-track', 'b', 'c']
+      );
     } finally {
       dom.window.close();
     }
