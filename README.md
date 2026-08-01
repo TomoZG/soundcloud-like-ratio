@@ -29,8 +29,8 @@ Firefox removes temporary add-ons when the browser closes.
 
 ### Verify a release
 
-Each installable ZIP includes a SHA-256 checksum and GitHub build-provenance
-attestation:
+Each release provides a SHA-256 checksum and GitHub build-provenance attestation
+for its installable ZIP:
 
 ```sh
 sha256sum -c soundcloud-like-ratio-<version>.zip.sha256
