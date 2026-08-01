@@ -13,8 +13,10 @@ Example: `≈3.63%` means approximately 3.63% of plays resulted in a like. The
 
 ## Install
 
-Chrome Web Store and Firefox Add-ons links will be added after the first public
-store review.
+The extension is distributed through GitHub Releases only. It is not currently
+available from the Chrome Web Store or Firefox Add-ons. Manual installations do
+not receive browser-managed automatic updates, so install each new release
+manually if you want to update.
 
 To install a GitHub Release manually:
 
@@ -26,6 +28,10 @@ To install a GitHub Release manually:
    Temporary Add-on**, and select the extracted `manifest.json`.
 
 Firefox removes temporary add-ons when the browser closes.
+
+Persistent Firefox installation requires a Mozilla-signed package, which this
+project does not currently publish. Browser-store publication may be considered
+in the future.
 
 ### Verify a release
 
@@ -40,7 +46,7 @@ gh attestation verify soundcloud-like-ratio-<version>.zip \
 
 GitHub also adds automatic “Source code” archives to every release. Those
 contain the whole repository; the explicitly named `soundcloud-like-ratio-*.zip`
-asset is the minimal extension package submitted to the browser stores.
+asset is the minimal extension package for manual installation.
 
 ## Privacy
 

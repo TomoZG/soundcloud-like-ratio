@@ -1,7 +1,8 @@
 # Store Assets
 
-This directory contains the version-controlled source and generated artwork for
-browser-store submissions.
+This directory contains version-controlled source, generated artwork, and
+metadata retained for possible future browser-store publication. The extension
+is currently distributed through GitHub Releases only.
 
 - `source/icon.svg` is the original extension icon.
 - `source/small-promo-tile.svg` is the editable Chrome promotional tile.
