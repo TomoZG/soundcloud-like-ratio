@@ -7,7 +7,6 @@
 - Publisher/display name: TomoZG
 - Homepage: https://github.com/TomoZG/soundcloud-like-ratio
 - Support: https://github.com/TomoZG/soundcloud-like-ratio/issues
-- Privacy policy: https://github.com/TomoZG/soundcloud-like-ratio/blob/master/PRIVACY.md
 - License: MIT
 
 Short description:
@@ -53,7 +52,6 @@ Privacy disclosures:
 - Authentication, financial, health, communications, location, and form data:
   not collected or transmitted.
 - Sale, transfer, advertising, analytics, and human access: none.
-- Privacy policy URL: use the public GitHub URL above.
 - Limited Use certification: affirm only while the package and privacy policy
   remain consistent with these statements.
 

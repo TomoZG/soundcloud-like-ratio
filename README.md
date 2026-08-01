@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml/badge.svg)](https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml)
 
-SoundCloud Like Ratio is an independent Chrome and Firefox extension that shows
+SoundCloud Like Ratio is a Chrome and Firefox extension that shows
 the percentage of plays that resulted in a like. It can also filter loaded
 tracks by minimum play or like counts and sort them by like percentage.
 
@@ -15,47 +15,17 @@ Example: `≈3.63%` means approximately 3.63% of plays resulted in a like. The
 
 ## Install
 
-The extension is distributed through GitHub Releases only. It is not currently
-available from the Chrome Web Store or Firefox Add-ons. Manual installations do
-not receive browser-managed automatic updates, so install each new release
-manually if you want to update.
-
-To install a GitHub Release manually:
-
-1. Download `soundcloud-like-ratio-<version>.zip` from the Releases page.
-2. Extract the archive.
-3. In Chrome, open `chrome://extensions`, enable **Developer mode**, choose
-   **Load unpacked**, and select the extracted directory.
-4. In Firefox, open `about:debugging#/runtime/this-firefox`, choose **Load
-   Temporary Add-on**, and select the extracted `manifest.json`.
-
-Firefox removes temporary add-ons when the browser closes.
-
-Persistent Firefox installation requires a Mozilla-signed package, which this
-project does not currently publish. Browser-store publication may be considered
-in the future.
-
-### Verify a release
-
-Each release provides a SHA-256 checksum and GitHub build-provenance attestation
-for its installable ZIP:
-
-```sh
-sha256sum -c soundcloud-like-ratio-<version>.zip.sha256
-gh attestation verify soundcloud-like-ratio-<version>.zip \
-  --repo TomoZG/soundcloud-like-ratio
-```
-
-GitHub also adds automatic “Source code” archives to every release. Those
-contain the whole repository; the explicitly named `soundcloud-like-ratio-*.zip`
-asset is the minimal extension package for manual installation.
+Download and extract the `soundcloud-like-ratio-<version>.zip` asset from the
+[latest release](https://github.com/TomoZG/soundcloud-like-ratio/releases/latest),
+then follow the official instructions for
+[Chrome](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)
+or [temporary installation in Firefox](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/).
 
 ## Privacy
 
 The extension reads visible like and play counts from SoundCloud and processes
 them locally in the current browser tab. It has no analytics, advertising,
-accounts, persistent storage, or extension-originated network requests. See the
-full [privacy policy](PRIVACY.md).
+accounts, persistent storage, or extension-originated network requests.
 
 ## Filtering and sorting
 
@@ -98,13 +68,6 @@ Useful commands:
 The extension currently targets SoundCloud list and stream track markup. Since
 that upstream markup is outside this project's control, selector changes should
 include regression tests and manual checks in both browsers.
-
-## Contributing and support
-
-Bug reports and focused improvements are welcome through GitHub Issues. Support
-and review are best-effort with no response-time guarantee. See
-[CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before opening a
-pull request or reporting a vulnerability.
 
 ## License
 
