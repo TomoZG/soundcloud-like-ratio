@@ -7,9 +7,15 @@ const path = require('node:path');
 const { RUNTIME_FILES } = require('./extension-files');
 
 const projectRoot = path.join(__dirname, '..');
+const manifest = JSON.parse(fs.readFileSync(
+  path.join(projectRoot, 'manifest.json'),
+  'utf8'
+));
 const temporarySource = fs.mkdtempSync(
-  path.join(os.tmpdir(), 'soundcloud-like-ratio-lint-')
+  path.join(os.tmpdir(), 'soundcloud-like-ratio-build-')
 );
+const artifactsDirectory = path.join(projectRoot, 'web-ext-artifacts');
+const filename = `soundcloud-like-ratio-${manifest.version}.zip`;
 const webExtExecutable = path.join(
   projectRoot,
   'node_modules',
@@ -25,9 +31,11 @@ try {
   });
 
   const result = spawnSync(webExtExecutable, [
-    'lint',
+    'build',
     '--source-dir', temporarySource,
-    '--warnings-as-errors',
+    '--artifacts-dir', artifactsDirectory,
+    '--filename', filename,
+    '--overwrite-dest',
     '--no-input'
   ], {
     env: {

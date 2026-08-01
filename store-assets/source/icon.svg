@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">SoundCloud Like Ratio icon</title>
+  <desc id="description">A white percentage symbol on an orange rounded square.</desc>
+  <rect x="16" y="16" width="96" height="96" rx="24" fill="#ff5500"/>
+  <circle cx="48" cy="48" r="11" fill="#ffffff"/>
+  <circle cx="80" cy="80" r="11" fill="#ffffff"/>
+  <path d="M43 88 85 40" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="10"/>
+</svg>

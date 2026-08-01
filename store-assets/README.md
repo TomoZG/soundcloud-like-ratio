@@ -1,0 +1,17 @@
+# Store Assets
+
+This directory contains the version-controlled source and generated artwork for
+browser-store submissions.
+
+- `source/icon.svg` is the original extension icon.
+- `source/small-promo-tile.svg` is the editable Chrome promotional tile.
+- `generated/small-promo-tile.png` is the required 440×280 upload.
+- `screenshots/` documents the screenshots still requiring capture from a live
+  browser with the release build installed.
+
+Run `scripts/render-assets.sh` on a system with `rsvg-convert` to reproduce the
+PNG artwork. Runtime icons are written to `icons/`; store-only artwork is kept
+outside the extension package.
+
+Do not add SoundCloud's logo, private account information, unpublished tracks,
+or misleading mockups to store artwork.

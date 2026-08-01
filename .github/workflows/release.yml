@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Package and publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify tag and version
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="$(node scripts/verify-release-tag.js "$RELEASE_TAG")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Run checks and build package
+        run: npm run check
+      - name: Create SHA-256 checksum
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd web-ext-artifacts
+          sha256sum "soundcloud-like-ratio-$VERSION.zip" > "soundcloud-like-ratio-$VERSION.zip.sha256"
+      - name: Attest extension package
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4
+        with:
+          subject-path: web-ext-artifacts/soundcloud-like-ratio-${{ steps.version.outputs.version }}.zip
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "web-ext-artifacts/soundcloud-like-ratio-$VERSION.zip" \
+            "web-ext-artifacts/soundcloud-like-ratio-$VERSION.zip.sha256" \
+            --generate-notes \
+            --title "SoundCloud Like Ratio $VERSION" \
+            --verify-tag

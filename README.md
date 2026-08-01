@@ -1,84 +1,99 @@
 # SoundCloud Like Ratio
 
-Chrome and Firefox Manifest V3 extension that displays the like rate beside each
-SoundCloud track's Like button.
+SoundCloud Like Ratio is an independent Chrome and Firefox extension that shows
+the percentage of plays that resulted in a like. It can also filter loaded
+tracks by minimum play or like counts and sort them by like percentage.
 
-Example:
+Example: `≈3.63%` means approximately 3.63% of plays resulted in a like. The
+`≈` marker appears when SoundCloud provides an abbreviated metric such as
+`10.1K`.
 
-`≈3.63%`
+> SoundCloud is a trademark of SoundCloud Global Limited & Co. KG. This project
+> is not affiliated with or endorsed by SoundCloud.
 
-This means approximately 3.63% of plays resulted in a like.
+## Install
 
-## Install locally in Chrome
+Chrome Web Store and Firefox Add-ons links will be added after the first public
+store review.
 
-1. Extract the ZIP.
-2. Open `chrome://extensions`.
-3. Enable **Developer mode**.
-4. Click **Load unpacked**.
-5. Select the extracted `soundcloud-like-ratio` directory.
-6. Refresh SoundCloud.
+To install a GitHub Release manually:
 
-## Install temporarily in Firefox
+1. Download `soundcloud-like-ratio-<version>.zip` from the Releases page.
+2. Extract the archive.
+3. In Chrome, open `chrome://extensions`, enable **Developer mode**, choose
+   **Load unpacked**, and select the extracted directory.
+4. In Firefox, open `about:debugging#/runtime/this-firefox`, choose **Load
+   Temporary Add-on**, and select the extracted `manifest.json`.
 
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on**.
-3. Select this repository's `manifest.json`.
-4. Open or refresh SoundCloud.
+Firefox removes temporary add-ons when the browser closes.
 
-Firefox removes temporary add-ons when the browser closes. For an auto-reloading
-development session, install the project dependencies and run
-`npm run start:firefox`.
+### Verify a release
 
-## Development checks
+Each installable ZIP includes a SHA-256 checksum and GitHub build-provenance
+attestation:
 
-Use Node.js 22 or newer:
+```sh
+sha256sum -c soundcloud-like-ratio-<version>.zip.sha256
+gh attestation verify soundcloud-like-ratio-<version>.zip \
+  --repo TomoZG/soundcloud-like-ratio
+```
 
-- `npm install` installs the pinned development tools.
-- `npm test` runs calculation and DOM behavior tests.
-- `npm run lint` validates JavaScript syntax and the extension manifest.
-- `npm run check` runs all automated checks.
-- `npm run start:chrome` or `npm run start:firefox` opens SoundCloud with the
-  extension loaded temporarily.
+GitHub also adds automatic “Source code” archives to every release. Those
+contain the whole repository; the explicitly named `soundcloud-like-ratio-*.zip`
+asset is the minimal extension package submitted to the browser stores.
 
-## DOM selectors
+## Privacy
 
-The extension uses the current SoundCloud search-result markup:
-
-- track: `li.soundList__item`
-- likes: `button.sc-button-like .sc-button-label`
-- plays: `.sc-ministats-plays`
-- exact play count: closest `li.sc-ministats-item` `title` attribute
-
-SoundCloud abbreviates some like counts, such as `10.1K`; those calculated ratios
-are prefixed with `≈`.
-
-
-## Visibility by play count
-
-The percentage is intentionally muted when the raw like rate is less comparable:
-
-- under 1,000 plays: `55%` opacity because the sample is small
-- 1,000 to 999,999 plays: full opacity
-- 1 million to 9,999,999 plays: `82%` opacity
-- 10 million or more plays: `68%` opacity
-
-The displayed percentage is always the unmodified likes-per-plays value.
+The extension reads visible like and play counts from SoundCloud and processes
+them locally in the current browser tab. It has no analytics, advertising,
+accounts, persistent storage, or extension-originated network requests. See the
+full [privacy policy](PRIVACY.md).
 
 ## Filtering and sorting
 
-A `Filter & sort` button appears in the bottom-right corner when the page contains
-a supported track. It opens a small panel with these controls:
+A **Filter & sort** button appears in the bottom-right corner when a supported
+track is present:
 
-- **Minimum plays** shows tracks with at least the entered number of plays. Leave
-  it empty to disable filtering. Press Enter or leave the field to apply it.
-- **Minimum likes** shows tracks with at least the entered number of likes and
-  uses the same apply behavior.
+- **Minimum plays** and **Minimum likes** hide known counts below the threshold.
 - **Order** switches between SoundCloud's original order and like percentage,
   highest first.
-- **Reset** clears both thresholds and restores the original order.
+- **Reset** clears thresholds and restores the original order.
 
-Tracks must meet both thresholds when both filters are active. Tracks with an
-unreadable play or like count remain visible; only known counts below an active
-minimum are hidden. Filtering and sorting also apply to tracks loaded later by
-SoundCloud. Settings survive in-page navigation, but reset when the page or tab
-is reloaded.
+Tracks with unreadable metrics remain visible. Settings apply to tracks loaded
+later by SoundCloud and survive in-page navigation, but reset when the page or
+tab reloads.
+
+## Development
+
+Use Node.js 22 or newer:
+
+```sh
+npm install
+npm run check
+```
+
+Useful commands:
+
+- `npm test` runs calculation and DOM behavior tests.
+- `npm run lint` validates JavaScript and the extension manifest.
+- `npm run build` creates the minimal extension ZIP.
+- `npm run verify:package` checks the ZIP against the runtime-file allow-list.
+- `npm run start:chrome` or `npm run start:firefox` starts a temporary browser
+  session.
+- `scripts/render-assets.sh` recreates icons and the Chrome promotional tile
+  from the version-controlled SVG sources.
+
+The extension currently targets SoundCloud list and stream track markup. Since
+that upstream markup is outside this project's control, selector changes should
+include regression tests and manual checks in both browsers.
+
+## Contributing and support
+
+Bug reports and focused improvements are welcome through GitHub Issues. Support
+and review are best-effort with no response-time guarantee. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before opening a
+pull request or reporting a vulnerability.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

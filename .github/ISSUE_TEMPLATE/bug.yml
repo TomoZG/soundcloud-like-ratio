@@ -1,0 +1,67 @@
+name: Bug report
+description: Report reproducible extension behavior that is not working as described.
+title: '[Bug] '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Do not include private SoundCloud content, account credentials, or personal information.
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome
+        - Firefox
+        - Other Chromium browser
+    validations:
+      required: true
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser version
+    validations:
+      required: true
+  - type: dropdown
+    id: page
+    attributes:
+      label: SoundCloud page type
+      options:
+        - Search results
+        - Stream
+        - Track page
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: List the smallest sequence that demonstrates the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add sanitized screenshots or console output only when useful.
