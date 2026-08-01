@@ -24,6 +24,7 @@
   let sortMode = 'original';
   let minimumPlays = null;
   let minimumLikes = null;
+  let unknownCountMode = 'hide';
   let controls = null;
   let controlButton = null;
   let panel = null;
@@ -31,6 +32,7 @@
   let playsThresholdError = null;
   let minimumLikesInput = null;
   let likesThresholdError = null;
+  let unknownCountsSelect = null;
   let sortSelect = null;
 
   function parseMetric(text) {
@@ -235,7 +237,7 @@
       delete track.dataset.scLikeRatioLikes;
     }
 
-    if (!plays || plays.value <= 0) {
+    if (!plays || plays.value < 0) {
       clearRatioState(track);
       delete track.dataset.scLikeRatioPlays;
       return;
@@ -244,7 +246,8 @@
     setAttribute(track, 'data-sc-like-ratio-plays', String(plays.value));
 
     if (
-      !likes
+      plays.value === 0
+      || !likes
       || !likes.button
       || likes.value <= 0
       || likes.value > plays.value
@@ -390,10 +393,16 @@
       const belowMinimumLikes = minimumLikes !== null
         && Number.isFinite(likes)
         && likes < minimumLikes;
+      const missingFilteredPlays = minimumPlays !== null
+        && !Number.isFinite(plays);
+      const missingFilteredLikes = minimumLikes !== null
+        && !Number.isFinite(likes);
+      const missingRequiredCount = unknownCountMode === 'hide'
+        && (missingFilteredPlays || missingFilteredLikes);
 
       track.classList.toggle(
         FILTERED_CLASS,
-        belowMinimumPlays || belowMinimumLikes
+        belowMinimumPlays || belowMinimumLikes || missingRequiredCount
       );
     });
   }
@@ -482,9 +491,11 @@
   function resetSettings() {
     minimumPlays = null;
     minimumLikes = null;
+    unknownCountMode = 'hide';
     sortMode = 'original';
     minimumPlaysInput.value = '';
     minimumLikesInput.value = '';
+    unknownCountsSelect.value = unknownCountMode;
     sortSelect.value = sortMode;
     setThresholdError(minimumPlaysInput, playsThresholdError);
     setThresholdError(minimumLikesInput, likesThresholdError);
@@ -510,6 +521,9 @@
     }
     if (minimumLikes !== null) {
       activeSettings.push(`at least ${minimumLikes.toLocaleString()} likes`);
+    }
+    if (unknownCountMode === 'show') {
+      activeSettings.push('show tracks with unknown filtered counts');
     }
     if (sortMode === 'ratio') {
       activeSettings.push('like ratio, highest first');
@@ -642,6 +656,34 @@
       likesThresholdError
     );
 
+    const unknownCountsField = document.createElement('div');
+    unknownCountsField.className = 'sc-like-ratio-field';
+
+    const unknownCountsLabel = document.createElement('label');
+    unknownCountsLabel.setAttribute('for', 'sc-like-ratio-unknown-counts');
+    unknownCountsLabel.textContent = 'Unknown filtered counts';
+
+    unknownCountsSelect = document.createElement('select');
+    unknownCountsSelect.id = 'sc-like-ratio-unknown-counts';
+
+    const hideUnknownOption = document.createElement('option');
+    hideUnknownOption.value = 'hide';
+    hideUnknownOption.textContent = 'Hide tracks';
+
+    const showUnknownOption = document.createElement('option');
+    showUnknownOption.value = 'show';
+    showUnknownOption.textContent = 'Show tracks';
+
+    unknownCountsSelect.append(hideUnknownOption, showUnknownOption);
+    unknownCountsSelect.value = unknownCountMode;
+    unknownCountsSelect.addEventListener('change', () => {
+      unknownCountMode = unknownCountsSelect.value;
+      applyCurrentFilter();
+      updateControls();
+    });
+
+    unknownCountsField.append(unknownCountsLabel, unknownCountsSelect);
+
     const sortField = document.createElement('div');
     sortField.className = 'sc-like-ratio-field';
 
@@ -686,7 +728,14 @@
     doneButton.addEventListener('click', () => setPanelOpen(false, true));
 
     actions.append(resetButton, doneButton);
-    panel.append(title, thresholdField, likesThresholdField, sortField, actions);
+    panel.append(
+      title,
+      thresholdField,
+      likesThresholdField,
+      unknownCountsField,
+      sortField,
+      actions
+    );
     controls.append(panel, controlButton);
     document.body.appendChild(controls);
     updateControls();

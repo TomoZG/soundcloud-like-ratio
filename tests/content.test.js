@@ -69,6 +69,13 @@ function setMinimumLikes(document, value) {
   return input;
 }
 
+function setUnknownCountMode(document, value) {
+  const select = document.querySelector('#sc-like-ratio-unknown-counts');
+  select.value = value;
+  select.dispatchEvent(new document.defaultView.Event('change'));
+  return select;
+}
+
 function setSortOrder(document, value) {
   const select = document.querySelector('#sc-like-ratio-sort-order');
   select.value = value;
@@ -344,7 +351,79 @@ describe('content script behavior', () => {
     }
   });
 
-  test('filters plays inclusively and keeps tracks with unknown plays', () => {
+  test('hides only unknown counts required by active filters by default', () => {
+    const list = `
+      <ul id="tracks">
+        ${trackMarkup({
+          id: 'unknown-plays',
+          likes: '10',
+          plays: 'not available',
+          title: null
+        })}
+        ${trackMarkup({ id: 'unknown-likes', likes: '-', plays: '2,000' })}
+        ${trackMarkup({ id: 'known-zero', likes: '0', plays: '0' })}
+      </ul>
+    `;
+    const dom = startExtension(list);
+
+    try {
+      const document = dom.window.document;
+      const track = (id) => document.querySelector(`[data-track-id="${id}"]`);
+      const isFiltered = (id) => track(id).classList.contains(
+        'sc-like-ratio-filtered'
+      );
+      const unknownCounts = document.querySelector(
+        '#sc-like-ratio-unknown-counts'
+      );
+
+      assert.equal(unknownCounts.value, 'hide');
+      assert.equal(isFiltered('unknown-plays'), false);
+      assert.equal(isFiltered('unknown-likes'), false);
+      assert.equal(track('known-zero').dataset.scLikeRatioPlays, '0');
+      assert.equal(track('known-zero').dataset.scLikeRatioLikes, '0');
+
+      setUnknownCountMode(document, 'show');
+      assert.equal(
+        document.querySelector('.sc-like-ratio-control-button').dataset.active,
+        'true'
+      );
+      setUnknownCountMode(document, 'hide');
+      assert.equal(
+        document.querySelector('.sc-like-ratio-control-button').dataset.active,
+        'false'
+      );
+
+      setMinimumPlays(document, '0');
+      assert.equal(isFiltered('unknown-plays'), true);
+      assert.equal(isFiltered('unknown-likes'), false);
+      assert.equal(isFiltered('known-zero'), false);
+
+      setMinimumPlays(document, '');
+      setMinimumLikes(document, '0');
+      assert.equal(isFiltered('unknown-plays'), false);
+      assert.equal(isFiltered('unknown-likes'), true);
+      assert.equal(isFiltered('known-zero'), false);
+
+      setMinimumPlays(document, '0');
+      assert.equal(isFiltered('unknown-plays'), true);
+      assert.equal(isFiltered('unknown-likes'), true);
+      assert.equal(isFiltered('known-zero'), false);
+
+      setUnknownCountMode(document, 'show');
+      assert.equal(isFiltered('unknown-plays'), false);
+      assert.equal(isFiltered('unknown-likes'), false);
+      assert.match(
+        document.querySelector('.sc-like-ratio-control-button').getAttribute(
+          'aria-label'
+        ),
+        /show tracks with unknown filtered counts/
+      );
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  test('filters plays inclusively and can show tracks with unknown plays', () => {
     const list = `
       <ul id="tracks">
         ${trackMarkup({ id: 'below', likes: '10', plays: '999' })}
@@ -362,6 +441,7 @@ describe('content script behavior', () => {
 
     try {
       const document = dom.window.document;
+      setUnknownCountMode(document, 'show');
       const input = setMinimumPlays(document, '1000');
       const track = (id) => document.querySelector(`[data-track-id="${id}"]`);
 
@@ -393,7 +473,7 @@ describe('content script behavior', () => {
     }
   });
 
-  test('filters likes inclusively and keeps tracks with unknown likes', () => {
+  test('filters likes inclusively and can show tracks with unknown likes', () => {
     const list = `
       <ul id="tracks">
         ${trackMarkup({ id: 'below', likes: '9', plays: '2,000' })}
@@ -414,6 +494,7 @@ describe('content script behavior', () => {
     try {
       const document = dom.window.document;
       const track = (id) => document.querySelector(`[data-track-id="${id}"]`);
+      setUnknownCountMode(document, 'show');
       setMinimumPlays(document, '1000');
       setMinimumLikes(document, '10');
 
@@ -465,6 +546,7 @@ describe('content script behavior', () => {
       const low = document.querySelector('[data-track-id="low"]');
       const input = setMinimumPlays(document, '1000');
       const likesInput = setMinimumLikes(document, '10');
+      const unknownCounts = setUnknownCountMode(document, 'show');
 
       assert.equal(low.classList.contains('sc-like-ratio-filtered'), true);
 
@@ -481,6 +563,7 @@ describe('content script behavior', () => {
       document.querySelector('.sc-like-ratio-reset').click();
       assert.equal(input.value, '');
       assert.equal(likesInput.value, '');
+      assert.equal(unknownCounts.value, 'hide');
       assert.equal(input.getAttribute('aria-invalid'), 'false');
       assert.equal(likesInput.getAttribute('aria-invalid'), 'false');
       assert.equal(low.classList.contains('sc-like-ratio-filtered'), false);
@@ -567,7 +650,7 @@ describe('content script behavior', () => {
       setMinimumLikes(document, '10');
 
       assert.equal(changing.classList.contains('sc-like-ratio-filtered'), true);
-      assert.equal(unknown.classList.contains('sc-like-ratio-filtered'), false);
+      assert.equal(unknown.classList.contains('sc-like-ratio-filtered'), true);
 
       tracks.insertAdjacentHTML('beforeend', trackMarkup({
         id: 'new-low',
@@ -589,7 +672,12 @@ describe('content script behavior', () => {
       await waitForScan(dom.window);
 
       assert.equal(changing.hasAttribute('data-sc-like-ratio-likes'), false);
-      assert.equal(changing.classList.contains('sc-like-ratio-filtered'), false);
+      assert.equal(changing.classList.contains('sc-like-ratio-filtered'), true);
+
+      unknown.querySelector('.sc-button-label').textContent = '20';
+      await waitForScan(dom.window);
+
+      assert.equal(unknown.classList.contains('sc-like-ratio-filtered'), false);
     } finally {
       dom.window.close();
     }

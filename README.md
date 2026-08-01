@@ -63,13 +63,17 @@ A **Filter & sort** button appears in the bottom-right corner when a supported
 track is present:
 
 - **Minimum plays** and **Minimum likes** hide known counts below the threshold.
+- **Unknown filtered counts** chooses whether tracks missing a count required by
+  an active minimum remain visible. These tracks are hidden by default.
 - **Order** switches between SoundCloud's original order and like percentage,
   highest first.
-- **Reset** clears thresholds and restores the original order.
+- **Reset** clears thresholds, restores hiding unknown filtered counts, and
+  restores the original order.
 
-Tracks with unreadable metrics remain visible. Settings apply to tracks loaded
-later by SoundCloud and survive in-page navigation, but reset when the page or
-tab reloads.
+An unreadable play count only matters when **Minimum plays** is set, and an
+unreadable like count only matters when **Minimum likes** is set. Settings apply
+to tracks loaded later by SoundCloud and survive in-page navigation, but reset
+when the page or tab reloads.
 
 ## Development
 
