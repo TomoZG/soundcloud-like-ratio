@@ -7,8 +7,8 @@ is currently distributed through GitHub Releases only.
 - `source/icon.svg` is the original extension icon.
 - `source/small-promo-tile.svg` is the editable Chrome promotional tile.
 - `generated/small-promo-tile.png` is the required 440×280 upload.
-- `screenshots/` documents the screenshots still requiring capture from a live
-  browser with the release build installed.
+- `screenshots/` contains 1280×800 captures from a live browser with the current
+  release build installed, plus the recapture checklist.
 
 Run `scripts/render-assets.sh` on a system with `rsvg-convert` to reproduce the
 PNG artwork. Runtime icons are written to `icons/`; store-only artwork is kept

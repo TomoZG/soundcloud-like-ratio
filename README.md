@@ -1,14 +1,71 @@
 # SoundCloud Like Ratio
 
-[![CI](https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml/badge.svg)](https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml)
+<p align="center">
+  <img
+    src="store-assets/generated/small-promo-tile.png"
+    alt="SoundCloud Like Ratio — compare likes to plays, filter, sort, and discover"
+    width="440"
+  >
+</p>
+
+<p align="center">
+  <strong>See which SoundCloud tracks turn plays into likes.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml"><img src="https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+</p>
 
 SoundCloud Like Ratio is a Chrome and Firefox extension that shows
 the percentage of plays that resulted in a like. It can also filter loaded
 tracks by minimum play or like counts and sort them by like percentage.
 
-Example: `≈3.63%` means approximately 3.63% of plays resulted in a like. The
-`≈` marker appears when SoundCloud provides an abbreviated metric such as
-`10.1K`.
+## Features
+
+- Shows a likes-to-plays percentage beside supported SoundCloud tracks.
+- Understands exact and abbreviated metrics such as `10.1K`.
+- Updates as SoundCloud loads tracks or navigates between pages.
+- Filters tracks by minimum play and like counts.
+- Sorts loaded tracks by like percentage and restores their original order.
+- Processes everything locally, without analytics or tracking.
+
+## Screenshots
+
+<p align="center">
+  <a href="store-assets/screenshots/01-ratio-badges.png">
+    <img
+      src="store-assets/screenshots/01-ratio-badges.png"
+      alt="Exact and approximate like ratios beside SoundCloud track controls"
+      width="960"
+    >
+  </a>
+</p>
+
+<p align="center"><em>Exact and approximate ratios appear beside each supported Like button.</em></p>
+
+<p align="center">
+  <a href="store-assets/screenshots/02-filter-sort-panel.png">
+    <img
+      src="store-assets/screenshots/02-filter-sort-panel.png"
+      alt="SoundCloud Like Ratio Filter and sort panel with minimum thresholds and ratio ordering"
+      width="960"
+    >
+  </a>
+</p>
+
+<p align="center"><em>Set minimum play and like counts, choose how unknown counts behave, and change the order.</em></p>
+
+<p align="center">
+  <a href="store-assets/screenshots/03-sorted-filtered-results.png">
+    <img
+      src="store-assets/screenshots/03-sorted-filtered-results.png"
+      alt="Filtered SoundCloud tracks sorted from highest to lowest like ratio"
+      width="960"
+    >
+  </a>
+</p>
+
+<p align="center"><em>Loaded tracks can be filtered and reordered from highest to lowest like ratio.</em></p>
 
 > SoundCloud is a trademark of SoundCloud Global Limited & Co. KG. This project
 > is not affiliated with or endorsed by SoundCloud.
@@ -20,12 +77,6 @@ Download and extract the `soundcloud-like-ratio-<version>.zip` asset from the
 then follow the official instructions for
 [Chrome](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)
 or [temporary installation in Firefox](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/).
-
-## Privacy
-
-The extension reads visible like and play counts from SoundCloud and processes
-them locally in the current browser tab. It has no analytics, advertising,
-accounts, persistent storage, or extension-originated network requests.
 
 ## Filtering and sorting
 
@@ -44,6 +95,16 @@ An unreadable play count only matters when **Minimum plays** is set, and an
 unreadable like count only matters when **Minimum likes** is set. Settings apply
 to tracks loaded later by SoundCloud and survive in-page navigation, but reset
 when the page or tab reloads.
+
+Ratios calculated from exact counts are shown directly. When SoundCloud
+provides an abbreviated metric, the extension marks the result as an estimate:
+`≈3.63%` means approximately 3.63% of plays resulted in a like.
+
+## Privacy
+
+The extension reads visible like and play counts from SoundCloud and processes
+them locally in the current browser tab. It has no analytics, advertising,
+accounts, persistent storage, or extension-originated network requests.
 
 ## Development
 
