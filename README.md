@@ -1,5 +1,7 @@
 # SoundCloud Like Ratio
 
+[![CI](https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml/badge.svg)](https://github.com/TomoZG/soundcloud-like-ratio/actions/workflows/ci.yml)
+
 SoundCloud Like Ratio is an independent Chrome and Firefox extension that shows
 the percentage of plays that resulted in a like. It can also filter loaded
 tracks by minimum play or like counts and sort them by like percentage.

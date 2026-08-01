@@ -16,6 +16,10 @@ const packageJson = JSON.parse(fs.readFileSync(
   path.join(projectRoot, 'package.json'),
   'utf8'
 ));
+const releaseWorkflow = fs.readFileSync(
+  path.join(projectRoot, '.github', 'workflows', 'release.yml'),
+  'utf8'
+);
 
 function readPngDimensions(relativePath) {
   const image = fs.readFileSync(path.join(projectRoot, relativePath));
@@ -75,5 +79,24 @@ describe('release metadata', () => {
       /does not match extension version/
     );
     assert.throws(() => verifyReleaseTag('release-1.0.0'), /form v1\.2\.3/);
+  });
+
+  test('uploads release assets before publishing an immutable release', () => {
+    const createDraft = releaseWorkflow.indexOf(
+      'gh release create "$RELEASE_TAG"'
+    );
+    const uploadAssets = releaseWorkflow.indexOf(
+      'gh release upload "$RELEASE_TAG"'
+    );
+    const publishRelease = releaseWorkflow.indexOf(
+      'gh release edit "$RELEASE_TAG" --draft=false'
+    );
+
+    assert.ok(createDraft >= 0);
+    assert.ok(releaseWorkflow.slice(createDraft, uploadAssets).includes(
+      '--draft'
+    ));
+    assert.ok(uploadAssets > createDraft);
+    assert.ok(publishRelease > uploadAssets);
   });
 });

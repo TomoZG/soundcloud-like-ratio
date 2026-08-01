@@ -53,15 +53,28 @@ jobs:
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4
         with:
           subject-path: web-ext-artifacts/soundcloud-like-ratio-${{ steps.version.outputs.version }}.zip
-      - name: Create GitHub Release
+      - name: Create draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release create "$RELEASE_TAG" \
-            "web-ext-artifacts/soundcloud-like-ratio-$VERSION.zip" \
-            "web-ext-artifacts/soundcloud-like-ratio-$VERSION.zip.sha256" \
+            --draft \
             --generate-notes \
             --title "SoundCloud Like Ratio $VERSION" \
             --verify-tag
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            "web-ext-artifacts/soundcloud-like-ratio-$VERSION.zip" \
+            "web-ext-artifacts/soundcloud-like-ratio-$VERSION.zip.sha256"
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release edit "$RELEASE_TAG" --draft=false
