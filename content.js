@@ -4,8 +4,10 @@
   const TRACK_SELECTOR = 'li.soundList__item, .sound.streamContext';
   const LIST_ITEM_SELECTOR = 'li.soundList__item';
   const BADGE_CLASS = 'sc-like-ratio-extension';
+  const BADGE_VALUE_CLASS = 'sc-like-ratio-value';
   const CONTROLS_CLASS = 'sc-like-ratio-controls';
   const FILTERED_CLASS = 'sc-like-ratio-filtered';
+  const VISUALLY_HIDDEN_CLASS = 'sc-like-ratio-visually-hidden';
   const EXTENSION_ELEMENT_SELECTOR = `.${BADGE_CLASS}, .${CONTROLS_CLASS}`;
   const PANEL_ID = 'sc-like-ratio-panel';
   const PANEL_TITLE_ID = 'sc-like-ratio-panel-title';
@@ -224,6 +226,22 @@
     }
   }
 
+  function ensureBadgeContent(badge) {
+    let value = badge.querySelector(`:scope > .${BADGE_VALUE_CLASS}`);
+    if (value) {
+      return value;
+    }
+
+    const label = document.createElement('span');
+    label.className = VISUALLY_HIDDEN_CLASS;
+    label.textContent = 'Like percentage: ';
+
+    value = document.createElement('span');
+    value.className = BADGE_VALUE_CLASS;
+    badge.replaceChildren(label, value);
+    return value;
+  }
+
   function addOrUpdateBadge(track) {
     const listItem = getListItem(track);
     rememberOriginalOrder(listItem);
@@ -272,16 +290,17 @@
     if (!badge) {
       badge = document.createElement('span');
       badge.className = BADGE_CLASS;
-      badge.setAttribute('role', 'status');
-      badge.setAttribute('aria-label', 'Like percentage');
       likes.button.insertAdjacentElement('afterend', badge);
     }
 
+    badge.removeAttribute('role');
+    badge.removeAttribute('aria-label');
+    const badgeValue = ensureBadgeContent(badge);
     const ratio = formatPercentage(likes, plays);
     const lowSample = plays.value < LOW_SAMPLE_PLAY_COUNT;
     const popularityLevel = getPopularityLevel(plays.value);
 
-    setTextContent(badge, ratio.label);
+    setTextContent(badgeValue, ratio.label);
     setAttribute(badge, 'data-tier', getTier(ratio.percentage));
     setAttribute(badge, 'data-low-sample', String(lowSample));
     setAttribute(badge, 'data-popularity', popularityLevel);

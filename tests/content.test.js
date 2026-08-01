@@ -55,6 +55,10 @@ function trackOrder(list) {
   return [...list.children].map((item) => item.dataset.trackId);
 }
 
+function getBadgeValue(badge) {
+  return badge.querySelector('.sc-like-ratio-value')?.textContent;
+}
+
 function setMinimumPlays(document, value) {
   const input = document.querySelector('#sc-like-ratio-minimum-plays');
   input.value = value;
@@ -166,9 +170,15 @@ describe('content script behavior', () => {
       const track = dom.window.document.querySelector('[data-track-id="track-a"]');
       const badge = track.querySelector('.sc-like-ratio-extension');
 
-      assert.equal(badge.textContent, '5.00%');
-      assert.equal(badge.getAttribute('role'), 'status');
-      assert.equal(badge.getAttribute('aria-label'), 'Like percentage');
+      assert.equal(getBadgeValue(badge), '5.00%');
+      assert.equal(
+        badge.querySelector('.sc-like-ratio-visually-hidden').textContent,
+        'Like percentage: '
+      );
+      assert.equal(badge.textContent, 'Like percentage: 5.00%');
+      assert.equal(badge.hasAttribute('role'), false);
+      assert.equal(badge.hasAttribute('aria-live'), false);
+      assert.equal(badge.hasAttribute('aria-label'), false);
       assert.equal(badge.dataset.tier, 'high');
       assert.equal(badge.dataset.lowSample, 'false');
       assert.equal(badge.dataset.popularity, 'normal');
@@ -193,7 +203,7 @@ describe('content script behavior', () => {
       const badge = dom.window.document.querySelector(
         '.sc-like-ratio-extension'
       );
-      assert.equal(badge.textContent, '≈4.04%');
+      assert.equal(getBadgeValue(badge), '≈4.04%');
       assert.equal(badge.dataset.tier, 'good');
     } finally {
       dom.window.close();
@@ -224,7 +234,7 @@ describe('content script behavior', () => {
       await waitForScan(dom.window, 450);
       observer.disconnect();
 
-      assert.equal(badge.textContent, '6.00%');
+      assert.equal(getBadgeValue(badge), '6.00%');
       assert.equal(badgeMutations.length, 1);
       assert.equal(document.querySelectorAll(
         '.sc-like-ratio-extension'
@@ -250,7 +260,7 @@ describe('content script behavior', () => {
       track.querySelector('.sc-ministats-item').title = '4,000 plays';
       await waitForScan(dom.window);
 
-      assert.equal(badge.textContent, '2.50%');
+      assert.equal(getBadgeValue(badge), '2.50%');
       assert.equal(track.dataset.scLikeRatioPlays, '4000');
       assert.equal(track.dataset.scLikeRatioValue, '2.5');
     } finally {
