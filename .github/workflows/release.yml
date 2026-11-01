@@ -27,7 +27,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22.x
           cache: npm
@@ -50,7 +50,7 @@ jobs:
           cd web-ext-artifacts
           sha256sum "soundcloud-like-ratio-$VERSION.zip" > "soundcloud-like-ratio-$VERSION.zip.sha256"
       - name: Attest extension package
-        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: web-ext-artifacts/soundcloud-like-ratio-${{ steps.version.outputs.version }}.zip
       - name: Create draft GitHub Release
